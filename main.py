@@ -239,41 +239,45 @@ try:
 except Exception as e:
     print(f"Erro ao carregar imagem da carreta: {e}")
     caminhao_img = None
-janela.title("VIAJANTE")
+janela.title("VIAJANTE => ENGENHARIA DE TRANSPORTES")
 janela.geometry("1400x700")
 janela.state('zoomed')
+janela.config(bg="#002855")
 
-frame_principal = Frame(janela)
-frame_principal.pack(fill=BOTH, expand=True)
+frame_principal = Frame(janela, bg="#002855")
+frame_principal.pack(fill=BOTH, expand=True, pady=(0, 0))
 
 loading_label = Label(frame_principal, text="Processando... Por favor, aguarde.",
-                      font=("Arial", 18, "bold"), bg="white", fg="#007acc",
-                      relief="solid", borderwidth=2)
+                      font=("Arial", 18, "bold"), bg="#002855", fg="#FFCC00",
+                      relief="solid", borderwidth=3)
 
-frame_top = Frame(frame_principal)
+frame_top = Frame(frame_principal, bg="#002855")
 frame_top.pack(fill=X, padx=10, pady=5)
 
 frame_top.grid_columnconfigure(0, weight=0)
 frame_top.grid_columnconfigure(1, weight=1)
 frame_top.grid_columnconfigure(2, weight=0)
 
-frame_selecao = Frame(frame_top)
+frame_selecao = Frame(frame_top, bg="#002855")
 frame_selecao.grid(row=0, column=0, sticky='nw', padx=10)
 
-Label(frame_selecao, text="Selecione o tipo de veículo:", font=("Arial", 10)).grid(row=0, column=0, columnspan=3, pady=(0, 5), sticky='w')
+Label(frame_selecao, text="Selecione o tipo de veículo:", font=("Arial", 10, "bold"), bg="#002855", fg="#FFCC00").grid(row=0, column=0, columnspan=3, pady=(0, 5), sticky='w')
 
 veiculo_var = StringVar(value='')
-frame_veiculos = Frame(frame_selecao)
+frame_veiculos = Frame(frame_selecao, bg="#002855")
 frame_veiculos.grid(row=1, column=0, columnspan=3, sticky='w')
 
 style = ttk.Style()
 style.theme_use('clam')
-style.configure("Modern.TButton", font=("Arial", 11, "bold"), background="#007acc",
+style.configure("Modern.TButton", font=("Arial", 11, "bold"), background="#002855",
                 foreground="white", padding=(10, 5), borderwidth=0, relief="flat")
-style.map("Modern.TButton", background=[('active', '#005f9e'), ('!disabled', '#007acc')])
+style.map("Modern.TButton", background=[('active', '#004080'), ('!disabled', '#002855')])
+style.configure("Highlight.TButton", font=("Arial", 12, "bold"), background="#FFCC00",
+                foreground="#002855", padding=(12, 6), borderwidth=2, relief="raised")
+style.map("Highlight.TButton", background=[('active', '#FFD633'), ('!disabled', '#FFCC00')])
 style.configure("Vehicle.Toolbutton", padding=5, font=("Arial", 9), width=17,
-                anchor="center", relief="raised")
-style.map("Vehicle.Toolbutton", background=[('active', '#e0e0e0'), ('selected', '#007acc')],
+                anchor="center", relief="raised", background="#FFCC00")
+style.map("Vehicle.Toolbutton", background=[('active', '#FFD633'), ('selected', '#002855')],
           foreground=[('selected', 'white')])
 
 colunas = 3
@@ -283,16 +287,16 @@ for i, (nome, cod) in enumerate(sorted(veiculos_dict.items())):
                          value=str(cod), style="Vehicle.Toolbutton")
     rb.grid(row=i // colunas, column=i % colunas, sticky='w', padx=2, pady=2)
 
-label_veiculo = Label(frame_selecao, text="")
+label_veiculo = Label(frame_selecao, text="", bg="#002855", fg="#FFCC00", font=("Arial", 9, "bold"))
 label_veiculo.grid(row=2, column=1, columnspan=3, pady=2)
 modo_manual = BooleanVar(value=False)
-check_manual = Checkbutton(frame_selecao, text="Usar veículo escolhido para todos", variable=modo_manual)
+check_manual = Checkbutton(frame_selecao, text="Usar veículo escolhido para todos", variable=modo_manual, bg="#002855", fg="white", selectcolor="#FFCC00", activebackground="#002855", activeforeground="#FFCC00", font=("Arial", 9))
 check_manual.grid(row=2, column=0, columnspan=3, sticky='w', pady=(5,5))
 
 btn_atualizar = ttk.Button(frame_selecao, text="Atualizar Dados",
-                           command=lambda: atualizar(), style="Modern.TButton")
+                           command=lambda: atualizar(), style="Highlight.TButton")
 
-Label(frame_selecao, text="Cód. Destino:", font=("Arial", 10)).grid(row=2, column=5, pady=(10, 5), padx=(10, 0), sticky='e')
+Label(frame_selecao, text="Cód. Destino:", font=("Arial", 10, "bold"), bg="#002855", fg="#FFCC00").grid(row=2, column=5, pady=(10, 5), padx=(10, 0), sticky='e')
 cod_destino_var = StringVar(value='1080')
 
 def validate_numeric(P):
@@ -305,37 +309,47 @@ entry_cod_destino = Entry(frame_selecao, textvariable=cod_destino_var, width=10,
 entry_cod_destino.grid(row=2, column=6, pady=(10, 5), sticky='w')
 btn_atualizar.grid(row=2, column=7, pady=(10, 5), padx=5, sticky="ew")
 
-frame_caminhoes = Frame(frame_top)
+frame_caminhoes = Frame(frame_top, bg="#002855")
 frame_caminhoes.grid(row=0, column=0, padx=(550, 0), sticky='nw')
-canvas_caminhoes = Canvas(frame_caminhoes, width=360, height=240)
+canvas_caminhoes = Canvas(frame_caminhoes, width=360, height=240, bg="#002855", highlightthickness=0)
 canvas_caminhoes.pack()
 
-frame_resumo = Frame(frame_top)
+frame_resumo = Frame(frame_top, bg="#002855")
 frame_resumo.grid(row=0, column=2, sticky='ne', padx=20)
-tree_resumo = ttk.Treeview(frame_resumo, columns=("Info", "Valor"), show="headings", height=5)
+tree_resumo = ttk.Treeview(frame_resumo, columns=("Info", "Valor"), show="headings", height=8)
 tree_resumo.heading("Info", text="Info")
 tree_resumo.heading("Valor", text="Valor")
-tree_resumo.column("Info", width=120, anchor='center')
-tree_resumo.column("Valor", width=100, anchor='center')
+tree_resumo.column("Info", width=140, anchor='center')
+tree_resumo.column("Valor", width=120, anchor='center')
 tree_resumo.pack()
-for item in ["Ocupação Total", "Qtd Veículos", "Volume Total", "Peso Total", "Embalagens"]:
+for item in ["Ocupação Total", "Qtd Veículos", "Volume Total", "Peso Total", "Embalagens", "Cap. Útil (m³)", "Cap. Útil (%)", "Volume Restante"]:
     tree_resumo.insert("", END, values=(item, ""))
 
-frame_bottom = Frame(frame_principal)
-frame_bottom.pack(fill=BOTH, expand=True, padx=10, pady=(0, 10))
+frame_bottom = Frame(frame_principal, bg="white")
+frame_bottom.pack(fill=BOTH, expand=True, padx=10, pady=(5, 0))
 
-frame_filters = Frame(frame_bottom)
+frame_filters = Frame(frame_bottom, bg="#f0f0f0")
 frame_filters.pack(fill=X, pady=(5, 2))
 
-scroll_y = Scrollbar(frame_bottom, orient=VERTICAL)
-scroll_y.pack(side=RIGHT, fill=Y)
-tree = ttk.Treeview(frame_bottom, yscrollcommand=scroll_y.set)
-tree.pack(fill=BOTH, expand=True)
-scroll_y.config(command=tree.yview)
+# Create a frame for the treeview with scrollbars
+tree_frame = Frame(frame_bottom, bg="white")
+tree_frame.pack(fill=BOTH, expand=True)
 
-style.configure("Treeview.Heading", background="#007acc", foreground="white",
-                font=("Arial", 10, "bold"), relief="flat")
-style.map("Treeview.Heading", background=[('active', '#005f9e')])
+scroll_y = Scrollbar(tree_frame, orient=VERTICAL)
+scroll_y.pack(side=RIGHT, fill=Y)
+
+scroll_x = Scrollbar(tree_frame, orient=HORIZONTAL)
+scroll_x.pack(side=BOTTOM, fill=X)
+
+tree = ttk.Treeview(tree_frame, yscrollcommand=scroll_y.set, xscrollcommand=scroll_x.set)
+tree.pack(fill=BOTH, expand=True)
+
+scroll_y.config(command=tree.yview)
+scroll_x.config(command=tree.xview)
+
+style.configure("Treeview.Heading", background="#002855", foreground="#FFCC00",
+                font=("Arial", 8, "bold"), relief="flat")
+style.map("Treeview.Heading", background=[('active', '#004080')])
 
 
 
@@ -369,7 +383,7 @@ def atualizar():
                 global original_tree_data
                 original_tree_data = [tree.item(child)['values'] for child in tree.get_children()]
 
-                columns_to_filter = ['COD FORNECEDOR', 'FORNECEDOR', 'DESENHO']
+                columns_to_filter = ['COD FORNECEDOR', 'FORNECEDOR', 'DESENHO', 'CAPACIDADE ÚTIL (%)']
                 all_table_columns = list(tree["columns"])
 
                 if not filter_widgets:
@@ -430,9 +444,23 @@ def start_loading():
   
 def finalizar_status(msg, color):
     """Atualiza o texto e esconde após 2 segundos"""
-    loading_label.config(text=msg, fg=color)
+    loading_label.config(text=msg, fg="#FFCC00", bg="#002855")
     janela.after(2000, loading_label.place_forget)
 
+
+footer_frame = Frame(janela, bg="#002855", height=18)
+footer_frame.pack(side=BOTTOM, fill=X)
+footer_frame.pack_propagate(False)
+
+footer_left = Label(footer_frame, text="DHL → STELLANTIS", 
+                    font=("Arial", 7, "bold"), bg="#002855", fg="#FFCC00", 
+                    anchor="w", padx=8, pady=0)
+footer_left.pack(side=LEFT, fill=Y)
+
+footer_right = Label(footer_frame, text="Developer: Vincent Pernarh", 
+                     font=("Arial", 7), bg="#002855", fg="#FFCC00", 
+                     anchor="e", padx=8, pady=0)
+footer_right.pack(side=RIGHT, fill=Y)
 
 janela.mainloop()
 

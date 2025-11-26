@@ -617,6 +617,11 @@ def completar_informacoes(tree, veiculo, tree_resumo, canvas_caminhoes, caminhao
         template = template.merge(df_saturacao[['CHAVE', 'SATURAÇÃO_POR_MDR']], on='CHAVE', how='left')
         template['SAT VOLUME (%)'] = round(template['QTD EMBALAGENS'] * template['SATURAÇÃO_POR_MDR'] * 100, 2)
         template['SAT PESO (%)'] = round(template['PESO TOTAL'] / template['PESO_MAXIMO'] * 100, 2)
+        
+        # --- Capacidade Útil Calculations (A-D) ---
+        # C) Combined - limiting factor per row
+        template['CAPACIDADE ÚTIL (%)'] = template[['SAT VOLUME (%)', 'SAT PESO (%)']].max(axis=1)
+        
         template.drop(columns=['CHAVE', 'SATURAÇÃO_POR_MDR'], inplace=True)
         df_saturacao.drop(columns=['CHAVE'], inplace=True)
 
@@ -627,6 +632,28 @@ def completar_informacoes(tree, veiculo, tree_resumo, canvas_caminhoes, caminhao
         volume = template['M³'].sum()
         peso = template['PESO TOTAL'].sum()
         embalagens = template['QTD EMBALAGENS'].sum()
+        
+        # Get vehicle capacity from db_veiculos
+        capacidade_veiculo_m3 = None
+        capacidade_veiculo_kg = None
+        if not template.empty and 'PESO_MAXIMO' in template.columns:
+            capacidade_veiculo_kg = template['PESO_MAXIMO'].iloc[0] if template['PESO_MAXIMO'].notna().any() else None
+        
+        # Get volume capacity from db_veiculos
+        try:
+            veiculo_info = db_veiculos[db_veiculos['COD VEICULO'] == veiculo]
+            if not veiculo_info.empty and 'CAPACIDADE M³' in veiculo_info.columns:
+                capacidade_veiculo_m3 = veiculo_info['CAPACIDADE M³'].iloc[0]
+        except:
+            pass
+        
+        # --- Capacidade Útil Calculations for Summary ---
+        # A) Volume-based capacity per vehicle
+        cap_util_volume_percent = (ocupacao / qtd_veiculos) if qtd_veiculos > 0 else 0
+        cap_util_volume_m3 = (volume / qtd_veiculos) if qtd_veiculos > 0 else 0
+        
+        # D) Remaining capacity
+        volume_restante = (capacidade_veiculo_m3 * qtd_veiculos - volume) if capacidade_veiculo_m3 else None
 
         # Preenche a tree_resumo (que deve ser passada como argumento)
         resumo_dados = [
@@ -634,9 +661,14 @@ def completar_informacoes(tree, veiculo, tree_resumo, canvas_caminhoes, caminhao
             ("Qtd Veículos", qtd_veiculos),
             ("Volume Total", f"{volume:.1f} m³"),
             ("Peso Total", f"{peso:.1f} kg"),
-            #("Peso Máximo", f"{peso_maximo:.1f} kg"),
             ("Embalagens", int(embalagens)),
+            ("Cap. Útil (m³)", f"{cap_util_volume_m3:.1f} m³"),
+            ("Cap. Útil (%)", f"{cap_util_volume_percent:.2f}%"),
         ]
+        
+        # Add remaining capacity if available
+        if volume_restante is not None and volume_restante >= 0:
+            resumo_dados.append(("Volume Restante", f"{volume_restante:.1f} m³"))
 
         linhas_validas = template[
             (template['DESENHO'].notna()) &
@@ -659,9 +691,36 @@ def completar_informacoes(tree, veiculo, tree_resumo, canvas_caminhoes, caminhao
         tree.delete(*tree.get_children())
         tree["columns"] = list(template.columns)
         tree["show"] = "headings"
+        
+        # Define reasonable initial widths for each column
+        column_widths = {
+            'COD FORNECEDOR': 140,
+            'FORNECEDOR': 280,
+            'COD DESTINO': 140,
+            'DESENHO': 150,
+            'QTDE': 90,
+            'DESCRIÇÃO MATERIAL': 350,
+            'MDR': 120,
+            'DESCRIÇÃO DA EMBALAGEM': 280,
+            'QME': 90,
+            'QTD EMBALAGENS': 140,
+            'TIPO SATURACAO': 140,
+            'VEICULO': 120,
+            'M³': 90,
+            'PESO MAT': 110,
+            'PESO MDR': 110,
+            'PESO TOTAL': 120,
+            'PESO_MAXIMO': 140,
+            'SAT VOLUME (%)': 140,
+            'SAT PESO (%)': 140,
+            'CAPACIDADE ÚTIL (%)': 150
+        }
+        
         for col in template.columns:
             tree.heading(col, text=col)
-            tree.column(col, width=130, anchor="center")
+            width = column_widths.get(col, 150)  # Default to 150 if not specified
+            tree.column(col, width=width, anchor="center", stretch=True, minwidth=80)
+        
         for _, row in template.iterrows():
             tree.insert("", END, values=list(row))
 
@@ -796,6 +855,10 @@ def consolidar_dados():
 
                 perc_mdr = round((desenhos_apurados / total_desenhos) * 100, 1) if total_desenhos else 0.0
 
+                # --- Capacidade Útil per route ---
+                cap_util_volume_rota_m3 = (volume_total / cargas) if cargas > 0 else 0
+                cap_util_volume_rota_percent = (saturacao_total / cargas) if cargas > 0 else 0
+
                 dados_volume.append({
                     'COD FLUXO': cod_fluxo,
                     'COD DESTINO': cod_dest,
@@ -812,6 +875,8 @@ def consolidar_dados():
                     'EMBALAGENS TOTAL': int(embalagens_total),
                     'SATURAÇÃO TOTAL (%)': round(saturacao_total, 2),
                     'CARGAS': cargas,
+                    'CAP. ÚTIL (m³)': round(cap_util_volume_rota_m3, 1),
+                    'CAP. ÚTIL (%)': round(cap_util_volume_rota_percent, 2),
                     'SUGESTÃO': sugestao,
                     '% MDRs APURADOS': perc_mdr
                 })
